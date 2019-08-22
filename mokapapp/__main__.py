@@ -24,7 +24,6 @@ def main():
     logger = logging.getLogger('mokapapp')
 
     # Get a list of MokaPanel objects, each containing a unique PanelApp panel + colour combination
-    # Use ssh_run to call mokapapp-query on the remote server and return a MokaPanel list.
     logger.info('Getting PanelApp panels as MokaPanel objects')
     panels = query.main(head=_args.head)
     logger.debug(f'Retrieved {len(panels)} MokaPanels: {[panel.name for panel in panels]}')
