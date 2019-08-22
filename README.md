@@ -22,7 +22,7 @@ Clone this repository and install with `pip` (tested on a Linux OS with python v
 
 ```
 $ git clone https://github.com/moka-guys/mokapapp.git
-$ pip install mokapapp
+$ pip install ./mokapapp
 ```
 
 ## Usage
