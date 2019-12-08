@@ -25,7 +25,7 @@ def main():
 
     # Get a list of MokaPanel objects, each containing a unique PanelApp panel + colour combination
     logger.info('Getting PanelApp panels as MokaPanel objects')
-    panels = query.main(head=_args.head)
+    panels = query.main()
     logger.debug(f'Retrieved {len(panels)} MokaPanels: {[panel.name for panel in panels]}')
 
     # Check Moka is ready for import:

@@ -28,14 +28,13 @@ $ pip install ./mokapapp
 ## Usage
 
 ```
-usage: mokapapp-import [-h] [-c CONFIG] [--logfile LOGFILE] [--head HEAD]
+usage: mokapapp-import [-h] [-c CONFIG] [--logfile LOGFILE]
 
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
                         A mokapapp config.ini file
   --logfile LOGFILE     A file to write application log outputs
-  --head HEAD           An integer limit for the number of PanelApp panels to process
 ```
 
 ## Configuration file
