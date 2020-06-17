@@ -29,7 +29,6 @@ def main(head=None, print_json=False):
     panels = _panelapp.PanelApp(head=head)
     # lib.MokaPanelFactor returns a generator. Convert to list for downstream applications.
     moka_panels = list(lib.MokaPanelFactory(panels, colours=['Green', 'Amber']).build())
-
     if print_json:
         # Read panels as dictionary and dump json to std::output
         # Note: If true, this function to behaves like an API response returning MokaPanels as dicts

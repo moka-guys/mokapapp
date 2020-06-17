@@ -45,26 +45,27 @@ class MokaPanel():
     """Convert PanelApp data into Moka readable panels.
 
     Args:
-        panel_hash(str): A panelapp panel hash e.g. 58346b8b8f62036225ca8a7d
-        name(str): Panel name e.g. Congenital disorders of glycosylation
+        moka_hash(str): A moka-form panelapp panel hash e.g. 58346b8b8f62036225ca8a7d_Amber
+        name(str): A moka-form panel name
+            e.g. "Congenital disorders of glycosylation version (PanelApp Amber v1.6)"
         version(str): Panel version e.g. 1.6
         genes(List[Tuple,]): A list of (HGNC, SYMBOL) tuples from PanelApp
         colour(str): Human readable panel colour converted from PanelApp
             gene confidence level scores. e.g. 'Amber'.
     """
-    def __init__(self, panel_hash, name, version, genes, colour):
-        self.hash = panel_hash
+    def __init__(self, moka_hash, name, version, genes, colour):
+        self.moka_hash = moka_hash
         self.name = name
         self.version = version
         self.genes = genes
         self.colour = colour
 
     def __str__(self):
-        return f"{self.hash}, {self.name}. No Genes: {len(self.genes)}"
+        return f"{self.moka_hash}, {self.name}. No Genes: {len(self.genes)}"
 
     def as_dict(self):
         return {
-            "hash": self.hash,
+            "moka_hash": self.moka_hash,
             "name": self.name,
             "version": self.version,
             "genes": self.genes,
@@ -80,7 +81,7 @@ class MokaPanel():
         """
         genes = [tuple(hgnc_symbol) for hgnc_symbol in data['genes']]
         return MokaPanel(
-            data['hash'], data['name'], data['version'], genes,
+            data['moka_hash'], data['name'], data['version'], genes,
             data['colour']
         )
 
@@ -109,14 +110,14 @@ class MokaPanelFactory():
 
         # Build MokaPanels
         for colour, panel in all_panels:
-            self.logger.debug('Getting {}, {}, {}'.format(colour, panel['id'], panel['name']))
-            # Get MokaPanel object.
-            moka_panel = self._get_moka_panel(colour, panel)
-            self.logger.debug(moka_panel)
-            # moka_panel is None if panel has 0 genes or 0 hash present in the API
-            if moka_panel:
-                # Yield panel. Generator can be chained to more efficiently process
-                yield(moka_panel)
+                self.logger.debug('Getting {}, {}, {}'.format(colour, panel['id'], panel['name']))
+                # Get MokaPanel object.
+                moka_panel = self._get_moka_panel(colour, panel)
+                self.logger.debug(moka_panel)
+                # moka_panel is None if panel has 0 genes or 0 hash present in the API
+                if moka_panel:
+                    # Yield panel. Generator can be chained to more efficiently process
+                    yield(moka_panel)
 
     def _get_moka_panel(self, colour, panel):
         """Returns a MokaPanel object for the colour and panel provided"""

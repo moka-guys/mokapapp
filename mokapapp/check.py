@@ -50,8 +50,9 @@ def main(config, panels):
         logger.info("No new panel version items to insert from PanelApp")
 
     # Check that all HGNC IDs from PanelApp are present in the Moka GenesHGNCS_current table
-    hgnc_set = lib.get_hgnc_set(panels)
-    mpc.check_hgncs(hgnc_set)
+    if panels:
+        hgnc_set = lib.get_hgnc_set(panels)
+        mpc.check_hgncs(hgnc_set)
 
     logger.info('Moka DB Check complete')
 

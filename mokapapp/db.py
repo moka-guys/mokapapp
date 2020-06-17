@@ -116,7 +116,7 @@ class _MokaPanelActivator(MokaDB):
             Deprecated panels are those that are active in Moka and absent from this list.
         """
         # Create a set of all Moka panel hashes active in panel app
-        panelapp_current = {panel.hash for panel in panels}
+        panelapp_current = {panel.moka_hash for panel in panels}
         # Select all PanelApp panel hashes in Moka
         moka_hashes = self._list_moka_hashes()
         for panel_hash in moka_hashes:
@@ -239,7 +239,7 @@ class MokaPanelUpdater(MokaDB):
         """
         # If deactivate flag passed, deactivate all matching panels in dbo.NGSPanel before insert.
         if deactivate_old:
-            self.activator._deactivate_all(mokapanel.hash)
+            self.activator._deactivate_all(mokapanel.moka_hash)
         # Insert Panel into NGS Panel
         self._insert_ngs_panel(mokapanel)
         # Insert panel genes into GenesHGNC_current
@@ -251,9 +251,9 @@ class MokaPanelUpdater(MokaDB):
             mokapanel(MokaPanel): An object containing moka-formatted Panel App panel data
         """
         # Prepare moka primary keys for panel data
-        item_id = self.get_item_id(mokapanel.hash)
+        item_id = self.get_item_id(mokapanel.moka_hash)
         version_id = self.get_item_id(mokapanel.version)
-        self.logger.info(f'Inserting {mokapanel.hash} into dbo.NGSPanel at {item_id, version_id}')
+        self.logger.info(f'Inserting {mokapanel.moka_hash} into dbo.NGSPanel at {item_id, version_id}')
 
         # Insert the NGSpanel, returning the key
         sql = textwrap.dedent("""
@@ -279,10 +279,10 @@ class MokaPanelUpdater(MokaDB):
             mokapanel(MokaPanel): An object containing moka-formatted Panel App panel data
         """
         # Prepare moka database primary keys for panel data
-        item_id = self.get_item_id(mokapanel.hash)
+        item_id = self.get_item_id(mokapanel.moka_hash)
         version_id = self.get_item_id(mokapanel.version)
         key = self.get_panel_id(item_id, version_id)
-        self.logger.info(f'Inserting {mokapanel.hash} HGNC ids into dbo.NGSPanelGenes at {key}')
+        self.logger.info(f'Inserting {mokapanel.moka_hash} HGNC ids into dbo.NGSPanelGenes at {key}')
 
         # Prepare sql statement for gene insert
         sql = textwrap.dedent(
@@ -325,7 +325,7 @@ class MokaPanelChecker(MokaDB):
         # Build a set of all panels in the moka item table
         mdb_panels = self.get_item_set(self.PANEL_HASH_INDEX)
         # Build a set of all panel hashes in panel app
-        panel_hashes = {panel.hash for panel in panels}
+        panel_hashes = {panel.moka_hash for panel in panels}
         # Get panels absent from Moka from the difference of the two sets.
         #   E.g. set(A) - set(B) = set(Items unique to A)
         return panel_hashes - mdb_panels
