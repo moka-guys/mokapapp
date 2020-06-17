@@ -23,13 +23,28 @@ def activator(mdb):
 def mock_mp():
     data = json.loads(mock_json)[0]
     return MokaPanel(
-        data['id'], data['name'], data['version'], data['genes'], data['colour']
+        data['moka_hash'], data['name'], data['version'], data['genes'], data['colour']
     )
 
 @pytest.fixture(scope="module")
 def false_mp():
     data = itertools.repeat('FALSE', 5)
     return MokaPanel(*data)
+
+def test_moka_updater(mock_mp):
+    """ To test MokaPanelUpdater, we insert the mock panel into Moka and assert all other
+    test functions work against this inserted panel."""
+    mpu = MokaPanelUpdater(**SV_TE_MOKDBS01)
+    assert mpu.in_ngs_panel(mock_mp.moka_hash)
+    # Check it is not present before running to avoid inserting the panel again.
+    #   Note: Record must be absent from Moka prior to running this test. Update mock panel version
+    if not mpu.version_in_ngs_panel(mock_mp.moka_hash, mock_mp.version):
+        mpu.insert_into_moka(mock_mp) # Note: Test is now left active in testdb.
+        assert mpu.in_ngs_panel(mock_mp.moka_hash) == True
+        assert mpu.version_in_ngs_panel(mock_mp.moka_hash, mock_mp.version) == True
+        assert mpu.is_update(mock_mp.moka_hash, '999.999') == True
+        assert mpu.is_update(mock_mp.moka_hash, '0.0001') == False
+
 
 class TestMokaDBChecker:
     @pytest.fixture(scope="module")
@@ -62,31 +77,22 @@ class TestMokaDBChecker:
 class TestMokaPanelActivator():
     
     def test_deactivate(self, activator, mock_mp):
-        activator._deactivate_all(mock_mp.hash)
+        activator._deactivate_all(mock_mp.moka_hash)
         status = activator.cursor.execute(
             "SELECT Active from dbo.NGSPanel WHERE Category = ? And Active = 1",
-            activator.get_item_id(mock_mp.hash)
+            activator.get_item_id(mock_mp.moka_hash)
         ).fetchall()
         assert len(status) == 0
 
     def test_set_active(self, activator, mock_mp):
-        #log.info(" ".join([mock_mp, activator.get_item_id(mock_mp.hash), activator.get_item_id(mock_mp.version)]))
-        activator._deactivate_all(mock_mp.hash)
-        activator.set_only_active(mock_mp.hash, mock_mp.version)
+        activator._deactivate_all(mock_mp.moka_hash)
+        activator.set_only_active(mock_mp.moka_hash, mock_mp.version)
+        category, subcategory = activator.get_item_id(mock_mp.moka_hash), activator.get_item_id(mock_mp.version)
         status = activator.cursor.execute(
             "SELECT Active from dbo.NGSPanel WHERE Category = ? AND SubCategory = ? AND Active = 1",
-            activator.get_item_id(mock_mp.hash),
-            activator.get_item_id(mock_mp.version)
+            category,
+            subcategory
         ).fetchall()
         log.info(status)
+        log.info( ",".join([str(i) for i in (mock_mp.moka_hash, mock_mp.version, category, subcategory)]))
         assert len(status) == 1
-
-def test_moka_updater(mock_mp):
-    """ To test MokaPanelUpdater, we insert the mock panel into Moka and assert all other
-    test functions work against this inserted panel."""
-    mpu = MokaPanelUpdater(**SV_TE_MOKDBS01)
-    mpu.insert_into_moka(mock_mp)
-    assert mpu.in_ngs_panel(mock_mp.hash) == True
-    assert mpu.version_in_ngs_panel(mock_mp.hash, mock_mp.version) == True
-    assert mpu.is_update(mock_mp.hash, '999.999') == True
-    assert mpu.is_update(mock_mp.hash, '0.0001') == False
