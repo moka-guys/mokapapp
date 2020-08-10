@@ -11,7 +11,7 @@ logger = logging.getLogger()
 def mock_mp():
     data = json.loads(mock_json)[0]
     return MokaPanel(
-        data['moka_hash'], data['name'], data['version'], data['genes'], data['colour']
+        data['moka_id'], data['name'], data['version'], data['genes'], data['colour']
     )
 
 def test_query_json():
