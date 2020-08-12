@@ -34,10 +34,10 @@ def main(config, panels):
     )
 
     # Get list of PanelApp hashes (moka-formatted) that are not in dbo.Item
-    new_panel_hashes = mpc.get_new_hashes(panels)
-    if new_panel_hashes:
-        logger.info("Inserting new hashes into dbo.Item: {}".format(new_panel_hashes))
-        mpc.insert_items(new_panel_hashes, mpc.PANEL_HASH_INDEX)
+    new_panel_ids = mpc.get_new_items(panels)
+    if new_panel_ids:
+        logger.info("Inserting new hashes into dbo.Item: {}".format(new_panel_ids))
+        mpc.insert_items(new_panel_ids, mpc.PANEL_MOKA_ID_INDEX)
     else:
         logger.info("No new panel hash items to insert from PanelApp")
 
