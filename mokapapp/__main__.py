@@ -50,17 +50,17 @@ def main():
     # For each panel,
     for panel in panels:
         # If the panel is new to Moka, import it. New panels have no entry in the NGS Panel table.
-        if not mpu.in_ngs_panel(panel.moka_hash):
+        if not mpu.in_ngs_panel(panel.moka_id):
             logger.info(f'New panel. Inserting into Moka: {panel}')
             mpu.insert_into_moka(panel)
         # Else if the panel is in Moka
         else:
             # Check if the latest panel version is in NGSPanel
-            if mpu.version_in_ngs_panel(panel.moka_hash, panel.version):
+            if mpu.version_in_ngs_panel(panel.moka_id, panel.version):
                 # Moka contains the latest panel so no import is required.
                 # Ensure this is the only version visible to users by deactivating older versions
                 logger.info(f'Panel is present in NGSPanel. Setting only active version: {panel}')
-                mpu.activator.set_only_active(panel.moka_hash, panel.version)
+                mpu.activator.set_only_active(panel.moka_id, panel.version)
             else:
                 # This is a new version of a panel in the NGSPanel Table.
                 # Insert into Moka, deactivating old panels first

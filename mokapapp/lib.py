@@ -45,7 +45,7 @@ class MokaPanel():
     """Convert PanelApp data into Moka readable panels.
 
     Args:
-        moka_hash(str): A moka-form panelapp panel hash e.g. 58346b8b8f62036225ca8a7d_Amber
+        moka_id(str): A moka-form panelapp panel identifer e.g. 254_Amber
         name(str): A moka-form panel name
             e.g. "Congenital disorders of glycosylation version (PanelApp Amber v1.6)"
         version(str): Panel version e.g. 1.6
@@ -53,19 +53,19 @@ class MokaPanel():
         colour(str): Human readable panel colour converted from PanelApp
             gene confidence level scores. e.g. 'Amber'.
     """
-    def __init__(self, moka_hash, name, version, genes, colour):
-        self.moka_hash = moka_hash
+    def __init__(self, moka_id, name, version, genes, colour):
+        self.moka_id = moka_id
         self.name = name
         self.version = version
         self.genes = genes
         self.colour = colour
 
     def __str__(self):
-        return f"{self.moka_hash}, {self.name}. No Genes: {len(self.genes)}"
+        return f"{self.moka_id}, {self.name}. No Genes: {len(self.genes)}"
 
     def as_dict(self):
         return {
-            "moka_hash": self.moka_hash,
+            "moka_id": self.moka_id,
             "name": self.name,
             "version": self.version,
             "genes": self.genes,
@@ -81,7 +81,7 @@ class MokaPanel():
         """
         genes = [tuple(hgnc_symbol) for hgnc_symbol in data['genes']]
         return MokaPanel(
-            data['moka_hash'], data['name'], data['version'], genes,
+            data['moka_id'], data['name'], data['version'], genes,
             data['colour']
         )
 
@@ -127,14 +127,14 @@ class MokaPanelFactory():
         # Get genes in panel filtered to the colour
         genes = self._get_panel_genes(_colour, panel['id'])
         # Return none if panel has no genes or hash
-        if len(genes) == 0 or panel['hash_id'] is None:
+        if len(genes) == 0 or panel['id'] is None:
             self.logger.debug(
                 f'{panel["name"], panel["id"]} Skipping MokaPanel build: HashID {panel["hash_id"]}, gene_count {len(genes)})'
             )
             return None
         else:  # Return MokaPanel
             mp = MokaPanel(
-                "{}_{}".format(panel['hash_id'], _colour),
+                "{}_{}".format(panel['id'], _colour),
                 self._get_moka_name(panel['name'], _colour, panel['version']),
                 panel['version'],
                 genes,
@@ -153,7 +153,7 @@ class MokaPanelFactory():
 
         Args:
             colour (str): Filter for genes returned for input panel. Options: Green, Amber, Red
-            panel_id (str): ID for a PanelApp panel. E.g. 67 (id) or 595ce30f8f62036352471f39 (hash)
+            panel_id (str): ID for a PanelApp panel. E.g. 67
         """
         endpoint = "https://panelapp.genomicsengland.co.uk/api/v1/panels"
         # PanelApp genes API contains a confidence_level field with values (0-4). The PanelApp

@@ -67,7 +67,7 @@ def test_mp_from_dict():
     mp = lib.MokaPanel.from_dict(data[0])
     assert mp.name == "Adult solid tumours cancer susceptibility (Panel App Amber v1.6)"
     assert mp.genes[0] == ("HGNC:25070", "ACD")
-    assert mp.moka_id == "595ce30f8f62036352471f39_Amber"
+    assert mp.moka_id == "245_Amber"
     assert mp.colour == "Amber"
 
 def test_moka_panels(PanelApp):

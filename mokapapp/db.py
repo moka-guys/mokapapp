@@ -21,7 +21,7 @@ class MokaDB():
     """
 
     # Set class variables for panel hash and version index values
-    PANEL_HASH_INDEX = 48
+    PANEL_MOKA_ID_INDEX = 48
     PANEL_VERSION_INDEX = 61
     # Moka User ID for automated scripts
     MOKAUSER = "1201865448"
@@ -55,10 +55,10 @@ class MokaDB():
             )
             self.cursor.commit()
 
-    def get_panel_id(self, panel_hash, version):
+    def get_panel_id(self, panel_item, version):
         return self.cursor.execute(
             "Select NGSPanelID from dbo.NGSPanel where Category = ? AND SubCategory = ?",
-            panel_hash,
+            panel_item,
             version
         ).fetchval()
 
@@ -66,8 +66,8 @@ class MokaDB():
         # Note: Panels exist in dbo.Item.Item with upper and lower-case colour names.
         # COLLATE Latin1_General_CS_AS makes SQL string comparisons case-sensitive. This is required
         # to get the accurate itemID from dbo.Item.Item, which contains entries like:
-        #   595ce30f8f62036352471f39_Amber -- (correct)
-        #   595ce30f8f62036352471f39_amber -- (legacy, no longer used)
+        #   245_Amber -- (correct)
+        #   245_amber -- (legacy, no longer used)
         return self.cursor.execute(
             "Select ItemID from dbo.Item where Item = ? COLLATE Latin1_General_CS_AS",
             item
@@ -93,21 +93,21 @@ class _MokaPanelActivator(MokaDB):
         self.cursor = cursor
         self.logger = logging.getLogger(__name__ + '._MokaPanelActivator')
 
-    def set_only_active(self, panel_hash, panel_version):
+    def set_only_active(self, panel_item, panel_version):
         """For a given panel hash, set the given version as the only active version in dbo.NGSPanel
 
         Args:
-            panel_hash: Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
+            panel_item: Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
             panel_version: PanelApp panel version e.g. 1.2
         """
-        self._deactivate_all(panel_hash)
+        self._deactivate_all(panel_item)
         self.cursor.execute(
             "UPDATE dbo.NGSPanel SET Active = 1 WHERE Category = ? AND SubCategory = ?",
-            self._get_item_id(panel_hash),
+            self._get_item_id(panel_item),
             self._get_item_id(panel_version)
         )
         self.cursor.commit()
-        self.logger.debug(f'Set only active version: {panel_hash}, {panel_version}')
+        self.logger.debug(f'Set only active version: {panel_item}, {panel_version}')
 
     def deactivate_deprecated(self, panels):
         """Deactivate all panels in Moka that are deprecated in PanelApp.
@@ -116,25 +116,25 @@ class _MokaPanelActivator(MokaDB):
             Deprecated panels are those that are active in Moka and absent from this list.
         """
         # Create a set of all Moka panel hashes active in panel app
-        panelapp_current = {panel.moka_hash for panel in panels}
+        active_in_panelapp_ids = {panel.moka_id for panel in panels}
         # Select all PanelApp panel hashes in Moka
-        moka_hashes = self._list_moka_hashes()
-        for panel_hash in moka_hashes:
-            if panel_hash not in panelapp_current:
-                self.logger.debug(f"{panel_hash} deprecated in PanelApp.")
-                self._deactivate_all(panel_hash)
+        moka_ids = self._list_moka_ids()
+        for panel_moka_id in moka_ids:
+            if panel_moka_id not in active_in_panelapp_ids:
+                self.logger.debug(f"{panel_item} deprecated in PanelApp.")
+                self._deactivate_all(panel_item)
 
-    def _deactivate_all(self, panel_hash):
+    def _deactivate_all(self, panel_item):
         """Deactivate all matching panel hashes in dbo.NGSPanel
         Args:
-            panel_hash(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
+            panel_item(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
         """
         self.cursor.execute(
             "UPDATE dbo.NGSPanel SET Active = 0 WHERE Category = ?  AND PanelType = 2",
-            self._get_item_id(panel_hash)
+            self._get_item_id(panel_item)
         )
         self.cursor.commit()
-        self.logger.debug(f'Panels matching {panel_hash} deactivated in NGSPanel')
+        self.logger.debug(f'Panels matching {panel_item} deactivated in NGSPanel')
 
     def _get_item_id(self, item):
         # Note: Panels exist in dbo.Item.Item with upper and lower-case colour names.
@@ -146,7 +146,7 @@ class _MokaPanelActivator(MokaDB):
             "Select ItemID from dbo.Item where Item = ? COLLATE Latin1_General_CS_AS", item
         ).fetchval()
 
-    def _list_moka_hashes(self):
+    def _list_moka_ids(self):
         rows = self.cursor.execute(
             textwrap.dedent(
                 """SELECT Item from dbo.Item as db
@@ -155,7 +155,7 @@ class _MokaPanelActivator(MokaDB):
                     WHERE db.ItemCategoryIndex1ID = ?
                       AND np.PanelType = 2
                 """
-            ), self.PANEL_HASH_INDEX
+            ), self.PANEL_MOKA_ID_INDEX
         ).fetchall()
         return (row.Item for row in rows)
 
@@ -168,13 +168,13 @@ class MokaPanelUpdater(MokaDB):
         self.logger = logging.getLogger(__name__ + '.MokaPanelUpdater')
         self.activator = _MokaPanelActivator(self.cursor)
 
-    def in_ngs_panel(self, panel_hash):
+    def in_ngs_panel(self, panel_item):
         """Returns True if a panel hash is present in dbo.NGSPanel.
 
         Panel hashes are stored in dbo.Item and their IDs are present in dbo.NGSPanel. This check
         queries the join between both tables.
         Args:
-            panel_hash(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
+            panel_item(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
         """
         # Note: Panels exist in dbo.Item.Item with upper and lower-case colour names.
         # "COLLATE Latin1_General_CS_AS" makes SQL string comparisons case-sensitive. Required to
@@ -187,30 +187,30 @@ class MokaPanelUpdater(MokaDB):
                 ON n.Category = i.ItemID
              WHERE i.Item = ? COLLATE Latin1_General_CS_AS
         """)
-        id_present = self.cursor.execute(sql, panel_hash).fetchval()
-        self.logger.debug(f"{panel_hash} returns {id_present} from dbo.NGSPanel")
+        id_present = self.cursor.execute(sql, panel_item).fetchval()
+        self.logger.debug(f"{panel_item} returns {id_present} from dbo.NGSPanel")
         return True if id_present else False
 
-    def version_in_ngs_panel(self, panel_hash, panel_version):
+    def version_in_ngs_panel(self, panel_item, panel_version):
         """Returns True if a panel hash and version are present in the same record in dbo.NGSPanel.
         Args:
-            panel_hash (str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
+            panel_item (str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
             panel_version (str): PanelApp panel version e.g. 1.2
         """
-        pan_id, version_id = self.get_item_id(panel_hash), self.get_item_id(panel_version)
+        pan_id, version_id = self.get_item_id(panel_item), self.get_item_id(panel_version)
         panel_present_with_version = self.cursor.execute(
             "SELECT * from dbo.NGSPanel WHERE Category = ? AND SubCategory = ?", pan_id, version_id
             ).fetchval()
         return True if panel_present_with_version else False
 
-    def is_update(self, panel_hash, panel_version):
+    def is_update(self, panel_item, panel_version):
         """Query Moka to determine if given panel version is an update.
 
         Returns True if query version is greater than the current Moka version.
         Returns False if no active panels found.
         Logs a warning if no version found in Moka for the input panel.
         Args:
-            panel_hash(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
+            panel_item(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
             panel_version(str): PanelApp panel version e.g. 1.2
         """
         # SQL query to get the panel version. Item and NGSPanel tables are joined by SubCategory and
@@ -223,9 +223,9 @@ class MokaPanelUpdater(MokaDB):
                                   WHERE Item = ? COLLATE Latin1_General_CS_AS)
                AND n.Active = 1
         """)
-        moka_version = self.cursor.execute(sql, panel_hash).fetchval()
+        moka_version = self.cursor.execute(sql, panel_item).fetchval()
         if moka_version is None:
-            self.logger.warning(f'No moka version found for {panel_hash}')
+            self.logger.warning(f'No moka version found for {panel_item}')
             return False
         elif parse_version(panel_version) > parse_version(moka_version):
             return True
@@ -239,7 +239,7 @@ class MokaPanelUpdater(MokaDB):
         """
         # If deactivate flag passed, deactivate all matching panels in dbo.NGSPanel before insert.
         if deactivate_old:
-            self.activator._deactivate_all(mokapanel.moka_hash)
+            self.activator._deactivate_all(mokapanel.moka_id)
         # Insert Panel into NGS Panel
         self._insert_ngs_panel(mokapanel)
         # Insert panel genes into GenesHGNC_current
@@ -251,9 +251,9 @@ class MokaPanelUpdater(MokaDB):
             mokapanel(MokaPanel): An object containing moka-formatted Panel App panel data
         """
         # Prepare moka primary keys for panel data
-        item_id = self.get_item_id(mokapanel.moka_hash)
+        item_id = self.get_item_id(mokapanel.moka_id)
         version_id = self.get_item_id(mokapanel.version)
-        self.logger.info(f'Inserting {mokapanel.moka_hash} into dbo.NGSPanel at {item_id, version_id}')
+        self.logger.info(f'Inserting {mokapanel.moka_id} into dbo.NGSPanel at {item_id, version_id}')
 
         # Insert the NGSpanel, returning the key
         sql = textwrap.dedent("""
@@ -279,10 +279,10 @@ class MokaPanelUpdater(MokaDB):
             mokapanel(MokaPanel): An object containing moka-formatted Panel App panel data
         """
         # Prepare moka database primary keys for panel data
-        item_id = self.get_item_id(mokapanel.moka_hash)
+        item_id = self.get_item_id(mokapanel.moka_id)
         version_id = self.get_item_id(mokapanel.version)
         key = self.get_panel_id(item_id, version_id)
-        self.logger.info(f'Inserting {mokapanel.moka_hash} HGNC ids into dbo.NGSPanelGenes at {key}')
+        self.logger.info(f'Inserting {mokapanel.moka_id} HGNC ids into dbo.NGSPanelGenes at {key}')
 
         # Prepare sql statement for gene insert
         sql = textwrap.dedent(
@@ -314,21 +314,21 @@ class MokaPanelChecker(MokaDB):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__ + '.MokaPanelChecker')
 
-    def get_new_hashes(self, panels):
+    def get_new_items(self, panels):
         """Returns MokaPanel hashes in a given list that are not present in Moka's Item table.
         Args:
             panels (List[MokaPanel]): Moka panels built from the PanelApp API response
         Returns:
-            new_panel_hashes (set): A set of panel hashes from *panels* that are not in dbo.Item
+            new_panel_itemes (set): A set of panel hashes from *panels* that are not in dbo.Item
                 E.g. { 595ce30f8f62036352471f39_Amber, ... }
         """
         # Build a set of all panels in the moka item table
-        mdb_panels = self.get_item_set(self.PANEL_HASH_INDEX)
+        mdb_panels = self.get_item_set(self.PANEL_MOKA_ID_INDEX)
         # Build a set of all panel hashes in panel app
-        panel_hashes = {panel.moka_hash for panel in panels}
+        panel_items = {panel.moka_id for panel in panels}
         # Get panels absent from Moka from the difference of the two sets.
         #   E.g. set(A) - set(B) = set(Items unique to A)
-        return panel_hashes - mdb_panels
+        return panel_items - mdb_panels
 
     def get_new_versions(self, panels):
         """Returns MokaPanel versions that are not present in dbo.Item.
