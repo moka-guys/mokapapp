@@ -1,6 +1,6 @@
-# write logfile to a directory given by the logdir option in the config or a default
+# write logfile to a directory given by the logdir option in the config or a default [[ DONE ]]
 
-# find panelapp panels that are signed off or not
+# find panelapp panels that are signed off or not [[ DONE ]] 
 
 # check that moka is ready to recieve these panels
 
