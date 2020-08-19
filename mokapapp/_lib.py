@@ -53,12 +53,13 @@ class MokaPanel():
         colour(str): Human readable panel colour converted from PanelApp
             gene confidence level scores. e.g. 'Amber'.
     """
-    def __init__(self, moka_id, name, version, genes, colour):
+    def __init__(self, moka_id, name, version, genes, colour, signed_off):
         self.moka_id = moka_id
         self.name = name
         self.version = version
         self.genes = genes
         self.colour = colour
+        self.signed_off = signed_off
 
     def __str__(self):
         return f"{self.moka_id}, {self.name}. No Genes: {len(self.genes)}"
@@ -69,7 +70,8 @@ class MokaPanel():
             "name": self.name,
             "version": self.version,
             "genes": self.genes,
-            "colour": self.colour
+            "colour": self.colour,
+            "signed_off": self.signed_off
         }
 
     @staticmethod
@@ -82,7 +84,7 @@ class MokaPanel():
         genes = [tuple(hgnc_symbol) for hgnc_symbol in data['genes']]
         return MokaPanel(
             data['moka_id'], data['name'], data['version'], genes,
-            data['colour']
+            data['colour'], data['signed_off']
         )
 
 
@@ -125,8 +127,16 @@ class MokaPanelFactory():
         # capitalized. E.g. "Amber"
         _colour = colour.capitalize()
         # Get genes in panel filtered to the colour
-        genes = self._get_panel_genes(_colour, panel['id'])
-        # Return none if panel has no genes or hash
+        panel_colour_map = {
+            "4": "Green", "3": "Green", "2": "Amber", "1": "Red", "0": "Red"
+        }
+
+        genes = [
+            (record[0], record[1]) for record in panel["genes"]
+            if panel_colour_map[record[2]] == colour
+        ]
+
+        # Return none if panel has no genes for this colour
         if len(genes) == 0 or panel['id'] is None:
             self.logger.debug(
                 f'{panel["name"], panel["id"]} Skipping MokaPanel build: HashID {panel["hash_id"]}, gene_count {len(genes)})'
@@ -135,45 +145,17 @@ class MokaPanelFactory():
         else:  # Return MokaPanel
             mp = MokaPanel(
                 "{}_{}".format(panel['id'], _colour),
-                self._get_moka_name(panel['name'], _colour, panel['version']),
+                self._get_moka_name(panel['name'], _colour, panel['version'], panel["signed_off"]),
                 panel['version'],
                 genes,
-                _colour
+                _colour,
+                panel["signed_off"]
             )
             self.logger.debug(f"Returning {mp}")
             return mp
 
-    def _get_moka_name(self, name, colour, version):
+    def _get_moka_name(self, name, colour, version, signed_off):
         """Return a string containing the human-readable panel name for Moka"""
         clean_name = name.replace('_', '-')
-        return "{} (Panel App {} v{})".format(clean_name, colour, version)
-
-    def _get_panel_genes(self, colour, panel_id):
-        """Query PanelApp API for panel genes filtered by colour.
-
-        Args:
-            colour (str): Filter for genes returned for input panel. Options: Green, Amber, Red
-            panel_id (str): ID for a PanelApp panel. E.g. 67
-        """
-        endpoint = "https://panelapp.genomicsengland.co.uk/api/v1/panels"
-        # PanelApp genes API contains a confidence_level field with values (0-4). The PanelApp
-        # handbook describes the mapping of these values to gene colours. We represent this as a
-        # dictionary for lookups.
-        panel_colour_map = {
-            "4": "Green", "3": "Green", "2": "Amber", "1": "Red", "0": "Red"
-        }
-        # Call PanelApp API for panel data using ID
-        response = requests.get(f"{endpoint}/{panel_id}")
-        response.raise_for_status()
-        r_json = response.json()
-        self.logger.debug(f"Found genes for {panel_id}")
-
-        # Return a list of (HGNCID, GeneSymbol) tuples for each gene in the API response,
-        # filtered by colour
-        genes = [
-            (record['gene_data']['hgnc_id'], record['gene_data']['hgnc_symbol'])
-            for record in r_json['genes']
-            if panel_colour_map[record['confidence_level']] == colour
-        ]
-        self.logger.debug(f'{len(genes)} {colour} present in panel {panel_id}')
-        return genes
+        so_initials = "SO " if signed_off else ""
+        return "{} (Panel App {}{} v{})".format(clean_name, so_initials, colour, version)

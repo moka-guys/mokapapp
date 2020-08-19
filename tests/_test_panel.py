@@ -65,10 +65,11 @@ def test_mp_from_dict():
     """Test that the MokaPanel can be read from a dictionary object"""
     data = json.loads(mock_json)
     mp = lib.MokaPanel.from_dict(data[0])
-    assert mp.name == "Adult solid tumours cancer susceptibility (Panel App Amber v1.6)"
+    assert mp.name == "Adult solid tumours cancer susceptibility (Panel App SO Amber v1.6)"
     assert mp.genes[0] == ("HGNC:25070", "ACD")
     assert mp.moka_id == "245_Amber"
     assert mp.colour == "Amber"
+    assert mp.signed_off == True
 
 def test_moka_panels(PanelApp):
     """Test that MokaPanels generated from API have a panel id and genes.
@@ -82,3 +83,13 @@ def test_moka_panels(PanelApp):
             logger.info(f"Tested {counter} panels succesfully. Working on {panel.name}")
         assert panel.moka_id is not None
         assert len(panel.genes) > 0
+
+def test_signed_off(PanelApp):
+    panel_signed_off = next(PanelApp(head=1, endpoint=PanelApp.SIGNED_OFF_ENDPOINT))
+    panel_normal = next(PanelApp(head=1, endpoint=PanelApp.PANELS_ENDPOINT))
+
+    assert panel_normal["signed_off"] == False
+    assert panel_signed_off["signed_off"] == True
+
+    normal_mps = list(lib.MokaPanelFactory(PanelApp(head=3), colours=['Green', 'Amber']).build())
+    so_mps = list(lib.MokaPanelFactory(PanelApp(head=3, endpoint=PanelApp.SIGNED_OFF_ENDPOINT), colours=['Green', 'Amber']).build())

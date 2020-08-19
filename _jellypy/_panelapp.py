@@ -20,9 +20,12 @@ class PanelApp():
     >>> ...  # Do something with panel
     """
 
+    PANELS_ENDPOINT = "https://panelapp.genomicsengland.co.uk/api/v1/panels"
+    SIGNED_OFF_ENDPOINT = "https://panelapp.genomicsengland.co.uk/api/v1/panels/signedoff"
+
     def __init__(
         self,
-        endpoint="https://panelapp.genomicsengland.co.uk/api/v1/panels",
+        endpoint=PANELS_ENDPOINT,
         head=None
     ):
         self.endpoint = endpoint
@@ -40,7 +43,8 @@ class PanelApp():
         r = response.json()
         # Yield panels from the first response
         for panel in r['results']:
-            yield panel
+            panel_with_genes = self._add_genes_to_panel(panel)
+            yield panel_with_genes
         # API responses from the /panels endpoint are paginated.
         # While the response dictionary contains a url for the next page.
         while r['next']:
@@ -49,7 +53,28 @@ class PanelApp():
             r = response.json()
             # Yield panels from current API results
             for panel in r['results']:
-                yield panel
+                panel_with_genes = self._add_genes_to_panel(panel)
+                yield panel_with_genes
+
+    def _add_genes_to_panel(self, panel):
+        """Add a "genes" entry to a panelapp panel dictionary from the panels endpoint.
+
+        For each gene in the panel, the entry should contain tuple(hgncid, symbol, confidence_level)
+        """
+        genes_endpoint = f'{self.endpoint}/{panel["id"]}'
+        genes_response = requests.get(genes_endpoint)
+        genes_response.raise_for_status()
+        r_json = genes_response.json()
+
+        panel["genes"] = [
+            (record['gene_data']['hgnc_id'], record['gene_data']['hgnc_symbol'], record['confidence_level'])
+            for record in r_json['genes']
+        ]
+        
+        # Add signed off boolean to panel
+        panel["signed_off"] = True if "signed_off" in r_json.keys() else False
+
+        return panel
 
     def __iter__(self):
         return self

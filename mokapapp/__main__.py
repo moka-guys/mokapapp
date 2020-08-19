@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Imports PanelApp panels into Moka.
+"""Import PanelApp panels into Moka.
 
 Raises an error if PanelApp data cannot be inserted due to missing HGNC ids.
 """

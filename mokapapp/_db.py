@@ -130,7 +130,7 @@ class _MokaPanelActivator(MokaDB):
             panel_item(str): Moka-format PanelApp panel hash e.g. 595ce30f8f62036352471f39_Amber
         """
         self.cursor.execute(
-            "UPDATE dbo.NGSPanel SET Active = 0 WHERE Category = ?  AND PanelType = 2",
+            "UPDATE dbo.NGSPanel SET Active = 0 WHERE Category = ?  AND PanelType IN (2,3)",
             self._get_item_id(panel_item)
         )
         self.cursor.commit()
@@ -153,7 +153,7 @@ class _MokaPanelActivator(MokaDB):
                      JOIN dbo.NGSPanel as np
                        ON db.ItemID = np.Category
                     WHERE db.ItemCategoryIndex1ID = ?
-                      AND np.PanelType = 2
+                      AND np.PanelType in (2,3)
                 """
             ), self.PANEL_MOKA_ID_INDEX
         ).fetchall()
@@ -253,15 +253,16 @@ class MokaPanelUpdater(MokaDB):
         # Prepare moka primary keys for panel data
         item_id = self.get_item_id(mokapanel.moka_id)
         version_id = self.get_item_id(mokapanel.version)
+        panel_type = 3 if mokapanel.signed_off else 2 # Set panel type based on signed off panel or not
         self.logger.info(f'Inserting {mokapanel.moka_id} into dbo.NGSPanel at {item_id, version_id}')
 
         # Insert the NGSpanel, returning the key
         sql = textwrap.dedent("""
             INSERT INTO dbo.NGSPanel
                    (Category, SubCategory, Panel, PanelCode, Active, Checker1, CheckDate, PanelType)
-            VALUES (?, ?, ?, 'Pan', 1, ? , CURRENT_TIMESTAMP, 2)
+            VALUES (?, ?, ?, 'Pan', 1, ? , CURRENT_TIMESTAMP, ?)
         """)
-        self.cursor.execute(sql, item_id, version_id, mokapanel.name, self.MOKAUSER)
+        self.cursor.execute(sql, item_id, version_id, mokapanel.name, self.MOKAUSER, panel_type)
         self.cursor.commit()
 
         # Update the Pan number record for the inserted panel.

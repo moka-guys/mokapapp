@@ -1,0 +1,12 @@
+# write logfile to a directory given by the logdir option in the config or a default
+
+# find panelapp panels that are signed off or not
+
+# check that moka is ready to recieve these panels
+
+# deactivate any panels that are missing from the panelapp api
+
+# for each panel:
+#   insert into moka if it's an update
+#   
+
