@@ -50,6 +50,15 @@ user = username
 password = password
 ```
 
+## Logfiles
+
+Outputs a logfile to the directory passed to `--logdir` flag. If no directory is given, logfiles are written to the current location. Mokappp logs end with a report summarising the following:
+* Panels retrieved from the PanelApp API and MokaPanels objects created
+* Panels depreciated in PanelApp and thus deactivated in Moka
+* New panel name items and versions inserted into Moka
+* New MokaPanels inserted into Moka
+* A string to indicate successful completion
+
 ## Testing
 
 Unit tests in the `tests/` directory are run using `pytest`. An *auth.py* file containing test server details must be present in  `tests/`:

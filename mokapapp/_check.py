@@ -2,8 +2,8 @@
 
 Check that moka contains keys for PanelApp panel hashes, versions and HGNC IDs.
 
-This check ensures that Moka has database keys for PanelApp data when imported.
-Panel hashes and versions are stored in dbo.Item where new data can simply be inserted.
+This check ensures that Moka has database keys for PanelApp data when imported. Panel ids and versions are stored in dbo.Item where new data can simply be inserted.
+
 HGNC IDs are stored in dbo.GenesHGNC_current, which is Moka's internal copy of the HGNC table. This
 snapshot is updated manually, therefore an error should be raised if PanelApp HGNC ids mismatch.
 """
@@ -18,7 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 def main(config, panels):
-    """ Checks Moka is able to receive PanelApp panel data.
+    """
+    Check that moka contains keys for PanelApp panel hashes, versions and HGNC IDs.
+
+    This check ensures that Moka has database keys for PanelApp data when imported. Panel ids and versions are stored in dbo.Item where new data can simply be inserted.
+
+    HGNC IDs are stored in dbo.GenesHGNC_current, which is Moka's internal copy of the HGNC table. This
+    snapshot is updated manually, therefore an error should be raised if PanelApp HGNC ids mismatch.
 
     Args:
         config (dict): Contains moka database server details as in config file

@@ -109,7 +109,7 @@ class _MokaPanelActivator(MokaDB):
         self.cursor.commit()
         self.logger.debug(f'Set only active version: {panel_item}, {panel_version}')
 
-    def deactivate_deprecated(self, panels):
+    def deactivate_deprecated(self, panels, reporter=None):
         """Deactivate all panels in Moka that are deprecated in PanelApp.
 
         panels (List[MokaPanel]): MokaPanel objects built from the PanelApp API response.
@@ -117,13 +117,16 @@ class _MokaPanelActivator(MokaDB):
         """
         # Create a set of all Moka panel hashes active in panel app
         active_in_panelapp_ids = {panel.moka_id for panel in panels}
-        # Select all PanelApp panel hashes in Moka
+        # Select all PanelApp panel hashes in Moka (that are active)
         moka_ids = self._list_moka_ids()
-        for panel_moka_id in moka_ids:
-            if panel_moka_id not in active_in_panelapp_ids:
-                self.logger.debug(f"{panel_item} deprecated in PanelApp.")
-                self._deactivate_all(panel_item)
-
+        depreciated_panels = [ panel_moka_id for panel_moka_id in moka_ids if panel_moka_id not in active_in_panelapp_ids ]
+        for panel_moka_id in depreciated_panels:
+            self.logger.debug(f"{panel_moka_id} deprecated in PanelApp.")
+            self._deactivate_all(panel_moka_id)
+        
+        if reporter:
+            reporter.add('Depreciated panels deactivated in Moka', len(depreciated_panels))
+        
     def _deactivate_all(self, panel_item):
         """Deactivate all matching panel hashes in dbo.NGSPanel
         Args:
@@ -154,6 +157,7 @@ class _MokaPanelActivator(MokaDB):
                        ON db.ItemID = np.Category
                     WHERE db.ItemCategoryIndex1ID = ?
                       AND np.PanelType in (2,3)
+                      AND np.Active = 1
                 """
             ), self.PANEL_MOKA_ID_INDEX
         ).fetchall()
@@ -320,7 +324,7 @@ class MokaPanelChecker(MokaDB):
         Args:
             panels (List[MokaPanel]): Moka panels built from the PanelApp API response
         Returns:
-            new_panel_itemes (set): A set of panel hashes from *panels* that are not in dbo.Item
+            new_panel_items (set): A set of panel hashes from *panels* that are not in dbo.Item
                 E.g. { 595ce30f8f62036352471f39_Amber, ... }
         """
         # Build a set of all panels in the moka item table

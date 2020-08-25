@@ -1,7 +1,8 @@
 import pytest
 import logging
 
-from mokapapp import mplogger, lib
+from auth import SV_TE_MOKDBS01
+from mokapapp import mplogger, lib, db
 from datetime import datetime
 
 def test_mplogger(tmp_path):
@@ -32,3 +33,34 @@ def test_mpfactory():
     assert len(panels) > 10
 
 
+class TestMokaChecker():
+
+    @pytest.fixture
+    def checker(self, mokapapp_config):
+        test_db = mokapapp_config['mokadb_test']
+        return db.MokaPanelChecker(**test_db)
+
+    def test_get_new_items(self, checker):
+        # Test that get_new_items gets panel new items and ignores existing ones
+        panels_in_moka = [lib.MokaPanel('34_Amber',None, None, None, None, None)]
+        panels_new_to_moka = [lib.MokaPanel('99999_Amber',None, None, None, None, None)]
+        assert checker.get_new_items(panels_in_moka) == set()
+        assert checker.get_new_items(panels_new_to_moka) == set(['99999_Amber'])
+
+    def test_get_new_versions(self, checker):
+        # Test that get_new_versions gets new panel versions and ignores existing ones
+        versions_in_moka = [lib.MokaPanel(None,None, '1.112', None, None, None)]
+        versions_new_to_moka = [lib.MokaPanel(None,None, '9.9999', None, None, None)]
+        assert checker.get_new_versions(versions_in_moka) == set()
+        assert checker.get_new_versions(versions_new_to_moka) == set(['9.9999'])
+
+    def test_check_hgncs(self, checker):
+        # Test that check_hgncs raises an error if new hgncs are present
+        hgncs_in_moka = set(['HGNC:5'])
+        hgncs_missing = set(['HGNC:FAKE'])
+        
+        # Assert no exception is raised
+        assert checker.check_hgncs(hgncs_in_moka)
+        # Assert an exception is raised when hgncs missing 
+        with pytest.raises(Exception):
+            checker.check_hgncs(hgncs_missing)

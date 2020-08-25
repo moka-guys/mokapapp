@@ -16,7 +16,10 @@ def setup(logdir, syslog='/dev/log'):
         logdir(str): A directory in which to write logfiles to in the format 'YYMMDD_mokapapp.log'
         syslog(str): Path to sys log. Set to linux default.
     """
-    logfilepath = pathlib.Path(logdir, datetime.now().strftime("%y%d%m") + "_mokapapp.log")
+    if not pathlib.Path(logdir).is_dir():
+        raise IOError('Logdir argument is not a valid directory')
+
+    logfilepath = pathlib.Path(logdir, datetime.now().strftime("%y%m%d") + "_mokapapp.log")
 
     logging_config = dict(
         version=1.0,

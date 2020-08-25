@@ -25,7 +25,7 @@ def cli(args):
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', help="A mokapapp config.ini file", type=_config_reader)
-    parser.add_argument('--logfile', help="A file to write application log outputs", default=None)
+    parser.add_argument('--logdir', help="A directory to write application log outputs", default=None)
     return parser.parse_args(args)
 
 

@@ -1,21 +1,40 @@
+import argparse
 import requests
 import itertools
+import logging
 from collections import namedtuple
 
 MokaPanel = namedtuple("MokaPanel", "moka_id name version genes colour signed_off")
+
+def cli(args):
+    """Parse command line arguments.
+    Args:
+        args (List): Command line arguments e.g. ['-c', 'config.ini']
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', help="A mokapapp config.ini file", required=True)
+    parser.add_argument('--logdir', help="A directory to write application logs. Default is current working directory.", default='.')
+    parser.add_argument('--db', help="Database config entry to use. Default is mokadb_prod.", default="mokadb_prod")
+    return parser.parse_args(args)
 
 class MokaPanelFactory():
     def __init__(self, endpoints, mpobject=MokaPanel):
         self.endpoints = endpoints
         self.MokaPanelObject = mpobject
 
-    def build(self, colours=None, head=None):
+    def build(self, colours=None, head=None, reporter=None):
         panels = self._get_panelapp_data(head=head)
+
         unfiltered_moka_panels = [ 
             self._create_moka_panel(colour, panel)
             for colour, panel in itertools.product(colours, panels)
         ]
         moka_panels = list(filter(lambda x: len(x.genes) > 0, unfiltered_moka_panels))
+        
+        if reporter:
+            reporter.add('Panels retrieved from panelapp', len(panels))
+            reporter.add('MokaPanel objects created', len(moka_panels))
+
         return moka_panels
 
     def _create_moka_panel(self, colour, panel):
@@ -150,3 +169,21 @@ class PanelApp():
                 raise StopIteration()
         else:
             return next(self._panels)
+
+class LogReporter():
+    """Report stats from running of mokapapp to logfile."""
+
+    def __init__(self):
+        self.stats = {}
+        self.logger = logging.getLogger('mokapapp.report')
+
+    def add(self, stat_name, stat):
+        try:
+            self.stats[stat_name] += stat
+        except KeyError:
+            self.stats[stat_name] = stat
+
+    def report_to_log(self):
+        for stat, count in self.stats.items():
+            log_string = ": ".join([str(stat), str(count)]) 
+            self.logger.info(log_string)
