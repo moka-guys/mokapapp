@@ -38,7 +38,6 @@ def prepare_moka_database(config: dict, panels: List[lib.MokaPanel], reporter):
 
     # Get list of PanelApp hashes (moka-formatted) that are not in dbo.Item
     new_panel_ids = panel_checker.get_new_items(panels)
-    reporter.add('New panel ids in panelapp', len(new_panel_ids))
     if new_panel_ids:
         logger.info("Inserting new hashes into dbo.Item: {}".format(new_panel_ids))
         panel_checker.insert_items(new_panel_ids, panel_checker.PANEL_MOKA_ID_INDEX)
@@ -47,7 +46,6 @@ def prepare_moka_database(config: dict, panels: List[lib.MokaPanel], reporter):
 
     # Get list of PanelApp version numbers that are not in dbo.Item
     new_panel_versions = panel_checker.get_new_versions(panels)
-    reporter.add('New panel versions in panelapp', len(new_panel_versions))
     if new_panel_versions:
         logger.info("Inserting new versions into dbo.Item: {}".format(new_panel_versions))
         panel_checker.insert_items(new_panel_versions, panel_checker.PANEL_VERSION_INDEX)
@@ -64,6 +62,10 @@ def prepare_moka_database(config: dict, panels: List[lib.MokaPanel], reporter):
             hgnc_set.update(hgncs)
         panel_checker.check_hgncs(hgnc_set)
 
+    # Write to logfile end report
+    if reporter:
+        reporter.add('New panel ids in panelapp', len(new_panel_ids))
+        reporter.add('New panel versions in panelapp', len(new_panel_versions))
     logger.info('Moka DB Check complete')
 
 def main():

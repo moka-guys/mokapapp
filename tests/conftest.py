@@ -9,7 +9,7 @@ import pytest
 def pytest_addoption(parser):
     parser.addoption("--config", action="store", required=True, help="mokapapp config.ini file")
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def mokapapp_config(request):
     config = configparser.ConfigParser()
     config.read(request.config.getoption("--config"))

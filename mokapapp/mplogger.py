@@ -25,7 +25,7 @@ def setup(logdir, syslog='/dev/log'):
         version=1.0,
         formatters={
             'log_formatter': {
-                'format': "{asctime} {name}.{module}: {levelname} - {message}",
+                'format': "{asctime} {name}: {levelname} - {message}",
                 'style': '{',
                 'datefmt': r'%Y-%m-%d %H:%M:%S'
             }
