@@ -76,7 +76,7 @@ class TestDB():
                 '999_test','Test Moka Panel (PanelApp Green v9.99)', '9.99',
                 [('HGNC:5', 'TEST_GENE')],'Green',False
         )
-        app.prepare_moka_database(mokapapp_config['mokadb_test'], [mp], reporter=None)
+        app.prepare_moka_database(mokapapp_config['mokadb_test'], [mp], reporter=self.get_fake_reporter())
 
         yield mp
         
@@ -103,6 +103,19 @@ class TestDB():
         test_db = mokapapp_config['mokadb_test']
         moka_db =  db.MokaDB(**test_db)
         return db._MokaPanelActivator(moka_db.cursor)
+
+    def get_fake_reporter(self):
+        class FakeReporter:
+            def __init__(self):
+                pass
+
+            def add(self, stat_name, stat):
+                pass
+
+            def report_to_log(self):
+                pass
+
+        return FakeReporter()
 
     def test_insert_and_in(self, moka_panel, updater):
         """Test that MokaPanelUpdater.insert_into_moka inserts the Moka panel.
@@ -145,17 +158,18 @@ def test_app(tmp_path, monkeypatch, mokapapp_config):
     class FakeConfigParser():
         def __init__(self):
             self.config = mokapapp_config
+            self.log_to_tempdir()
         def read(self, argument):
             pass
         def __getitem__(self, item):
             return self.config[item]
-
+        def log_to_tempdir(self):
+            logdir = (tmp_path / "logdir")
+            logdir.mkdir()
+            self.config['mokapapp']['logdir'] = str(logdir)
 
     monkeypatch.setattr(configparser, 'ConfigParser', FakeConfigParser)
     
-    logdir = (tmp_path / "logdir")
-    logdir.mkdir()
-    
-    sys.argv = ['mokapapp', '--config','unused_argument', '--db', 'mokadb_test', '--logdir', str(logdir)]
+    sys.argv = ['mokapapp', '--config','using_pytest_config_instead']
 
     app.main()
