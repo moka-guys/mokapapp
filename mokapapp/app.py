@@ -93,7 +93,7 @@ def main():
     logdir = config['mokapapp']['logdir']
     db_config = config[config['mokapapp']['db']]
     endpoints = config['endpoints']
-    min_panel_count = config['mokapapp'].get("min_panel_count", 500)
+    min_panel_count = int(config['mokapapp'].get("min_panel_count", 500))
 
     # Setup loggers
     mplogger.setup(logdir)
@@ -106,8 +106,8 @@ def main():
     panels = panel_factory.build(colours=["Green", "Amber"], reporter=reporter)
     logger.debug(f'Retrieved {len(panels)} MokaPanels: {[panel.name for panel in panels]}')
 
-    assert(panels, 'ERROR: No Moka panel app panels returned from parsing API response')
-    assert(len(panels) > min_panel_count, f'ERROR: The minimum number of expected panels ({min_panel_count}) was not exceeded')
+    assert panels, 'ERROR: No Moka panel app panels returned from parsing API response'
+    assert len(panels) > min_panel_count, f'ERROR: The minimum number of expected panels ({min_panel_count}) was not exceeded'
 
     # Check Moka is ready for import:
     #  - Update panels in Item table

@@ -125,7 +125,7 @@ class _MokaPanelActivator(MokaDB):
         moka_ids = self._list_moka_ids()
         depreciated_panels = [ 
             panel_moka_id for panel_moka_id in moka_ids 
-            if panel_moka_id not in active_in_panelapp_id
+            if panel_moka_id not in active_in_panelapp_ids
         ]
         for panel_moka_id in depreciated_panels:
             self.logger.debug(f"{panel_moka_id} deprecated in PanelApp.")
